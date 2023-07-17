@@ -20,6 +20,14 @@ const Delivery = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
+            <qrcode-scanner
+                v-show="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <div v-if="state_in(['deliver', 'confirm_done']) && has_picking()">
                 <picking-summary
                     :record="state.data.picking"
@@ -236,6 +244,11 @@ const Delivery = {
                             this.odoo.call("scan_deliver", {barcode: scanned.text})
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_deliver", {barcode: decodedText})
+                        );
+                    },
                     on_manual_selection: (evt) => {
                         this.wait_call(this.odoo.call("list_stock_picking"));
                     },
@@ -252,6 +265,15 @@ const Delivery = {
                         this.wait_call(
                             this.odoo.call("scan_deliver", {
                                 barcode: scanned.text,
+                                picking_id: this.current_picking().id,
+                                location_id: this.current_location().id,
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_deliver", {
+                                barcode: decodedText,
                                 picking_id: this.current_picking().id,
                                 location_id: this.current_location().id,
                             })
@@ -301,6 +323,9 @@ const Delivery = {
                     },
                     on_scan: (scanned) => {
                         this.state_set_data({filtered: scanned.text});
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.state_set_data({filtered: decodedText});
                     },
                     on_back: () => {
                         this.state_to("start");

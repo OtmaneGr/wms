@@ -39,6 +39,13 @@ automatically post the corresponding line
 if this option is checked.
 """
 
+RETURN_HELP = """
+When enabled, you can receive unplanned products that are returned
+from an existing delivery matched on the origin (SO name).
+A new move will be added as a return of the delivery,
+decreasing the delivered quantity of the related SO line.
+"""
+
 
 class ShopfloorMenu(models.Model):
     _inherit = "shopfloor.menu"
@@ -186,6 +193,14 @@ class ShopfloorMenu(models.Model):
     allow_alternative_destination_is_possible = fields.Boolean(
         compute="_compute_allow_alternative_destination_is_possible"
     )
+    allow_return_is_possible = fields.Boolean(
+        compute="_compute_allow_return_is_possible"
+    )
+    allow_return = fields.Boolean(
+        string="Allow create returns",
+        default=False,
+        help=RETURN_HELP,
+    )
 
     auto_post_line = fields.Boolean(
         string="Automatically post line",
@@ -199,13 +214,9 @@ class ShopfloorMenu(models.Model):
     @api.onchange("unload_package_at_destination")
     def _onchange_unload_package_at_destination(self):
         # Uncheck pick_pack_same_time when unload_package_at_destination is set to True
-        # Ensure that multiple_move_single_pack is False when
-        # unload_package_at_destination is checked out
         for record in self:
             if record.unload_package_at_destination:
                 record.pick_pack_same_time = False
-            else:
-                record.multiple_move_single_pack = False
 
     @api.onchange("pick_pack_same_time")
     def _onchange_pick_pack_same_time(self):
@@ -219,10 +230,8 @@ class ShopfloorMenu(models.Model):
     @api.onchange("multiple_move_single_pack")
     def _onchange_multiple_move_single_pack(self):
         # multiple_move_single_pack is incompatible with pick_pack_same_time,
-        # and requires unload_package_at_destination to be set
         for record in self:
             if record.multiple_move_single_pack:
-                record.unload_package_at_destination = True
                 record.pick_pack_same_time = False
 
     @api.constrains(
@@ -243,13 +252,6 @@ class ShopfloorMenu(models.Model):
                 _(
                     "'Pick and pack at the same time' is incompatible with "
                     "'Multiple moves same destination package'."
-                )
-            )
-        elif self.multiple_move_single_pack and not self.unload_package_at_destination:
-            raise exceptions.UserError(
-                _(
-                    "'Multiple moves same destination package' is mandatory when "
-                    "'Pick and pack at the same time' is set."
                 )
             )
 
@@ -424,3 +426,8 @@ class ShopfloorMenu(models.Model):
             menu.allow_alternative_destination_is_possible = (
                 menu.scenario_id.has_option("allow_alternative_destination")
             )
+
+    @api.depends("scenario_id")
+    def _compute_allow_return_is_possible(self):
+        for menu in self:
+            menu.allow_return_is_possible = menu.scenario_id.has_option("allow_return")

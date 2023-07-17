@@ -19,6 +19,14 @@ const LocationContentTransfer = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
+            <qrcode-scanner
+                v-show="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <template v-if="state_in(['scan_location']) && state.data.location">
                 <item-detail-card
                     :key="make_state_component_key(['detail-move-line-location', state.data.location.id])"
@@ -257,6 +265,11 @@ const LocationContentTransfer = {
                             this.odoo.call("scan_location", {barcode: scanned.text})
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_location", {barcode: decodedText})
+                        );
+                    },
                 },
                 scan_destination_all: {
                     display_info: {
@@ -271,6 +284,16 @@ const LocationContentTransfer = {
                             this.odoo.call("set_destination_all", {
                                 location_id: data.location.id,
                                 barcode: scanned.text,
+                                confirmation: data.confirmation_required,
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        const data = this.state.data;
+                        this.wait_call(
+                            this.odoo.call("set_destination_all", {
+                                location_id: data.location.id,
+                                barcode: decodedText,
                                 confirmation: data.confirmation_required,
                             })
                         );
@@ -304,6 +327,26 @@ const LocationContentTransfer = {
                                 move_line_id: data.move_line.id,
                                 location_id: data.move_line.location_src.id,
                                 barcode: scanned.text,
+                            };
+                        }
+                        this.wait_call(this.odoo.call(endpoint, endpoint_data));
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        let endpoint, endpoint_data;
+                        const data = this.state.data;
+                        if (data.package_level) {
+                            endpoint = "scan_package";
+                            endpoint_data = {
+                                package_level_id: data.package_level.id,
+                                location_id: data.package_level.location_src.id,
+                                barcode: decodedText,
+                            };
+                        } else {
+                            endpoint = "scan_line";
+                            endpoint_data = {
+                                move_line_id: data.move_line.id,
+                                location_id: data.move_line.location_src.id,
+                                barcode: decodedText,
                             };
                         }
                         this.wait_call(this.odoo.call(endpoint, endpoint_data));
@@ -342,6 +385,29 @@ const LocationContentTransfer = {
                                 move_line_id: data.move_line.id,
                                 location_id: data.move_line.location_src.id,
                                 barcode: scanned.text,
+                                confirmation: data.confirmation_required,
+                                quantity: this.scan_destination_qty,
+                            };
+                        }
+                        this.wait_call(this.odoo.call(endpoint, endpoint_data));
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        let endpoint, endpoint_data;
+                        const data = this.state.data;
+                        if (data.package_level) {
+                            endpoint = "set_destination_package";
+                            endpoint_data = {
+                                package_level_id: data.package_level.id,
+                                location_id: data.package_level.location_src.id,
+                                barcode: decodedText,
+                                confirmation: data.confirmation_required,
+                            };
+                        } else {
+                            endpoint = "set_destination_line";
+                            endpoint_data = {
+                                move_line_id: data.move_line.id,
+                                location_id: data.move_line.location_src.id,
+                                barcode: decodedText,
                                 confirmation: data.confirmation_required,
                                 quantity: this.scan_destination_qty,
                             };

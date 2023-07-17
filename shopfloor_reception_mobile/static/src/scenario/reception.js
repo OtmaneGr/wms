@@ -21,6 +21,14 @@ const Reception = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
             />
+            <qrcode-scanner
+                v-if="state_in(['select_document', 'select_move', 'set_lot', 'set_quantity', 'set_destination', 'select_dest_package'])"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <date-picker-input
                 v-if="state_is('set_lot')"
                 :handler_to_update_date="get_expiration_date_from_lot"

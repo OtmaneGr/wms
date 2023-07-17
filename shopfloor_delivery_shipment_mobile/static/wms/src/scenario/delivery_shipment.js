@@ -18,7 +18,14 @@ const DeliveryShipment = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
-
+            <qrcode-scanner
+                v-if="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
               <v-row align="center" v-if="state_is('loading_list')">
                 <v-col class="text-center" cols="12">
                   <v-btn-toggle mandatory v-model="filter_state">
@@ -61,6 +68,7 @@ const DeliveryShipment = {
             <div v-if="state_is('scan_document')" v-for="(value, name, index) in this.state.data.content">
                 <v-card color="blue lighten-1" class="detail v-card mt-5 main mb-2">
                     <v-card-title>{{ name }}</v-card-title>
+                    <v-card-subtitle> {{ package_level_process(value.package_levels) }}</v-card-subtitle>
                 </v-card>
                 <item-detail-card
                     v-for="packlevel in value.package_levels"
@@ -188,13 +196,27 @@ const DeliveryShipment = {
                 fields: [
                     {path: "carrier.name", label: "Carrier"},
                     {
-                        path: "package_level_count",
+                        path: this._picking_options_package_path(picking),
                         label: "Packages",
-                        display_no_value: true,
                     },
-                    {path: "move_line_count", label: "Lines", display_no_value: true},
+                    {
+                        path: this._picking_options_move_line_path(picking),
+                        label: "Lines",
+                    },
                 ],
             };
+        },
+        _picking_options_package_path: function (picking) {
+            return this.filter_state === "lading" &&
+                picking.loaded_packages_progress_f < 1
+                ? "loaded_packages_progress"
+                : "package_level_count";
+        },
+        _picking_options_move_line_path: function (picking) {
+            return this.filter_state === "lading" &&
+                picking.loaded_move_lines_progress_f < 1
+                ? "loaded_move_lines_progress"
+                : "move_line_count";
         },
         pack_options: function (pack) {
             const action = pack.is_done
@@ -211,6 +233,13 @@ const DeliveryShipment = {
         pack_color: function (pack) {
             const color = pack.is_done ? "screen_step_done" : "screen_step_todo";
             return this.utils.colors.color_for(color);
+        },
+        package_level_process(package_levels) {
+            const package_level_count = package_levels.length;
+            const done_package_level_count = package_levels.reduce((acc, next) => {
+                return next.is_done ? acc + 1 : acc;
+            }, 0);
+            return `Progress: ${done_package_level_count} / ${package_level_count}`;
         },
         line_options: function (line) {
             const action =
@@ -387,6 +416,15 @@ const DeliveryShipment = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_dock", {
+                                barcode: decodedText,
+                                confirmation:
+                                    this.state.data.confirmation_required || false,
+                            })
+                        );
+                    },
                 },
                 scan_document: {
                     display_info: {
@@ -408,12 +446,18 @@ const DeliveryShipment = {
                             })
                         );
                     },
-                    on_back: () => {
+                    onScan: (decodedText, decodedResult ) => {
                         this.wait_call(
-                            this.odoo.call("scan_dock", {
-                                barcode: "",
+                            this.odoo.call("scan_document", {
+                                barcode: decodedText,
+                                shipment_advice_id: this.shipment().id,
+                                picking_id: this.picking().id,
                             })
                         );
+                    },
+                    on_back: () => {
+                        this.state_to("init");
+                        this.reset_notification();
                     },
                     on_go2loading_list: () => {
                         this.wait_call(
@@ -431,14 +475,12 @@ const DeliveryShipment = {
                     on_scan: (scanned) => {
                         this.state_set_data({filter_name: scanned.text});
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.state_set_data({filter_name: decodedText});
+                    },
                     on_back: () => {
-                        this.wait_call(
-                            this.odoo.call("scan_document", {
-                                barcode: "",
-                                shipment_advice_id: this.shipment().id,
-                                picking_id: this.picking("scan_document").id,
-                            })
-                        );
+                        this.state_to("scan_document");
+                        this.reset_notification();
                     },
                     on_back2picking: (picking) => {
                         this.wait_call(

@@ -18,7 +18,14 @@ const ManualProductTransfer = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
-
+            <qrcode-scanner
+                v-if="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <item-detail-card
                 v-if="state_in(['scan_product', 'confirm_quantity', 'change_quantity', 'scan_destination_location'])"
                 :key="make_state_component_key(['manual-transfer-loc-src', location_src().id])"
@@ -234,6 +241,13 @@ const ManualProductTransfer = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_source_location", {
+                                barcode: decodedText,
+                            })
+                        );
+                    },
                 },
                 scan_product: {
                     display_info: {
@@ -244,6 +258,14 @@ const ManualProductTransfer = {
                         this.wait_call(
                             this.odoo.call("scan_product", {
                                 barcode: scanned.text,
+                                location_id: this.location_src().id,
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_product", {
+                                barcode: decodedText,
                                 location_id: this.location_src().id,
                             })
                         );
@@ -264,6 +286,18 @@ const ManualProductTransfer = {
                                 product_id: this.product().id,
                                 quantity: this.quantity(),
                                 barcode: scanned.text,
+                                lot_id: this.lot().id,
+                                // confirm: False,
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("confirm_quantity", {
+                                location_id: this.location_src().id,
+                                product_id: this.product().id,
+                                quantity: this.quantity(),
+                                barcode: decodedText,
                                 lot_id: this.lot().id,
                                 // confirm: False,
                             })
@@ -333,6 +367,14 @@ const ManualProductTransfer = {
                         this.wait_call(
                             this.odoo.call("scan_destination_location", {
                                 barcode: scanned.text,
+                                move_line_ids: this.move_line_ids(),
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_destination_location", {
+                                barcode: decodedText,
                                 move_line_ids: this.move_line_ids(),
                             })
                         );

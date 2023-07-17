@@ -8,7 +8,6 @@ import {ScenarioBaseMixin} from "/shopfloor_mobile_base/static/wms/src/scenario/
 import {process_registry} from "/shopfloor_mobile_base/static/wms/src/services/process_registry.js";
 import {checkout_states} from "./checkout_states.js";
 import event_hub from "/shopfloor_mobile_base/static/wms/src/services/event_hub.js";
-
 const Checkout = {
     mixins: [ScenarioBaseMixin],
     /*
@@ -31,6 +30,14 @@ const Checkout = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
+            <qrcode-scanner
+                v-show="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <div v-if="state_is('select_document')">
                 <div class="button-list button-vertical-list full">
                     <v-row align="center">
@@ -213,6 +220,13 @@ const Checkout = {
                     </v-row>
                     <v-row align="center">
                         <v-col class="text-center" cols="12">
+                        <v-btn
+                        @click="redirect_barcode_link()"
+                        :disabled="state.data.picking.move_lines.length < 1"> print barcode</v-btn>
+                        </v-col>
+                    </v-row>
+                    <v-row align="center">
+                        <v-col class="text-center" cols="12">
                             <btn-action action="todo"
                                 @click="$root.trigger('mark_as_done')"
                                 :disabled="state.data.picking.move_lines.length < 1">Mark as done</btn-action>
@@ -257,6 +271,12 @@ const Checkout = {
             const title = this.current_doc().record.name;
             return title;
         },
+        redirect_barcode_link: function () {
+            console.log(this.state.data.picking.move_lines[0].package_dest.id);
+            let colis = this.state.data.picking.move_lines[0].package_dest.id;
+            let link = window.location.origin.toString()+ "/report/pdf/stock.report_package_barcode_small/"+colis.toString();
+            window.open(link,"_blank");
+        }, 
         current_doc: function () {
             const data = this.state_get_data("select_line");
             if (_.isEmpty(data)) {
@@ -283,8 +303,10 @@ const Checkout = {
             };
         },
         handle_manual_select_highlight_on_scan: function (res) {
-            const new_selected_package_data = res.data.select_package;
-            new_selected_package_data.selected_move_lines.forEach((line) => {
+            // We need to ensure that the highlights of the detail-picking-select
+            // are updated correctly on scan.
+            const move_lines_data = this.get_move_lines_data(res);
+            move_lines_data.forEach((line) => {
                 let checked = false;
                 if (line.qty_done > 0) {
                     checked = true;
@@ -294,6 +316,23 @@ const Checkout = {
                     checked,
                 });
             });
+        },
+        get_move_lines_data: function (res) {
+            // We need to access the data object to find the move lines,
+            // and this path will vary depending on the current screen.
+            const data = res.data;
+            const state_key = res.next_state;
+            const path = this.get_move_lines_path(state_key);
+            return _.result(data, path, []);
+        },
+        get_move_lines_path: function (key) {
+            const possible_paths = {
+                summary: "picking.move_lines",
+                select_line: "picking.move_lines",
+                select_package: "selected_move_lines",
+                select_dest_package: "selected_move_lines",
+            };
+            return key + "." + possible_paths[key];
         },
         select_delivery_packaging_manual_select_options: function () {
             return {
@@ -364,6 +403,7 @@ const Checkout = {
             states: this._get_states(),
         };
     },
+    
 };
 
 process_registry.add("checkout", Checkout);

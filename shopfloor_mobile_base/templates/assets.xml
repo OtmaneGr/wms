@@ -50,6 +50,10 @@
             id="script_vue_router"
             t-attf-src="/shopfloor_mobile_base/static/wms/src/lib/vue-router.min.js?v=#{app_version}"
         />
+        <script
+            id="script_barcode"
+            t-attf-src="/shopfloor_mobile/static/wms/src/lib/html5-qrcode.min.js"
+        />
         <!-- https://yarkovaleksei.github.io/vue2-storage/en -->
         <script
             id="script_vue_storage"
@@ -145,6 +149,11 @@
             t-attf-src="/shopfloor_mobile_base/static/wms/src/components/report_issue.js?v=#{app_info.version}"
             type="module"
         />
+        <script
+                id="script_component_barcode_decoder"
+                t-attf-src="/shopfloor_mobile_base/static/wms/src/components/barcode_decoder.js"
+                type="module"
+            />
         <script
             id="script_component_misc"
             t-attf-src="/shopfloor_mobile_base/static/wms/src/components/misc.js?v=#{app_info.version}"

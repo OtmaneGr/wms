@@ -53,6 +53,16 @@ msgstr ""
 "(es decir, +1 Unidad o +1 Caja)\n"
 
 #. module: shopfloor
+#: model:ir.model.fields,help:shopfloor.field_shopfloor_menu__allow_return
+msgid ""
+"\n"
+"When enabled, you can receive unplanned products that are returned\n"
+"from an existing delivery matched on the origin (SO name).\n"
+"A new move will be added as a return of the delivery,\n"
+"decreasing the delivered quantity of the related SO line.\n"
+msgstr ""
+
+#. module: shopfloor
 #: model:ir.model.fields,help:shopfloor.field_shopfloor_menu__multiple_move_single_pack
 msgid ""
 "\n"
@@ -98,16 +108,6 @@ msgstr ""
 "si desea proporcionar productos a granel a la siguiente operación.\n"
 "\n"
 "Incompatible con: \"Recoger y empaquetar al mismo tiempo\"\n"
-
-#. module: shopfloor
-#: code:addons/shopfloor/models/shopfloor_menu.py:0
-#, python-format
-msgid ""
-"'Multiple moves same destination package' is mandatory when 'Pick and pack "
-"at the same time' is set."
-msgstr ""
-"'Múltiples movimientos en el mismo paquete de destino' es obligatorio cuando "
-"'Recoger y empaquetar al mismo tiempo' está configurado."
 
 #. module: shopfloor
 #: code:addons/shopfloor/models/shopfloor_menu.py:0
@@ -181,6 +181,16 @@ msgstr "Permitir Conseguir Trabajo Es Posible"
 #: model:ir.model.fields,field_description:shopfloor.field_shopfloor_menu__allow_move_create
 msgid "Allow Move Creation"
 msgstr "Permitir Creación de Movimiento"
+
+#. module: shopfloor
+#: model:ir.model.fields,field_description:shopfloor.field_shopfloor_menu__allow_return_is_possible
+msgid "Allow Return Is Possible"
+msgstr ""
+
+#. module: shopfloor
+#: model:ir.model.fields,field_description:shopfloor.field_shopfloor_menu__allow_return
+msgid "Allow create returns"
+msgstr ""
 
 #. module: shopfloor
 #: model:ir.model.fields,field_description:shopfloor.field_shopfloor_menu__allow_unreserve_other_moves
@@ -656,10 +666,10 @@ msgid "No delivery package type available."
 msgstr "No hay un tipo de paquete de entrega disponible."
 
 #. module: shopfloor
-#: code:addons/shopfloor/services/checkout.py:0
+#: code:addons/shopfloor/actions/message.py:0
 #, python-format
-msgid "No line to pack found"
-msgstr "No se encontró ninguna línea para empaquetar"
+msgid "No line to pack found."
+msgstr ""
 
 #. module: shopfloor
 #: code:addons/shopfloor/actions/message.py:0
@@ -797,6 +807,14 @@ msgstr "Tipos de Operación"
 #, python-format
 msgid "Operation already processed."
 msgstr "Operación ya procesada."
+
+#. module: shopfloor
+#: code:addons/shopfloor/actions/message.py:0
+#, python-format
+msgid ""
+"Operation types for this menu are missing default source and destination "
+"locations."
+msgstr ""
 
 #. module: shopfloor
 #: code:addons/shopfloor/actions/message.py:0
@@ -1491,6 +1509,12 @@ msgstr ""
 #. module: shopfloor
 #: code:addons/shopfloor/actions/message.py:0
 #, python-format
+msgid "The product/packaging you selected has already been returned."
+msgstr ""
+
+#. module: shopfloor
+#: code:addons/shopfloor/actions/message.py:0
+#, python-format
 msgid ""
 "The quantity scanned for one or more lines cannot be higher than the maximum "
 "allowed."
@@ -1803,6 +1827,12 @@ msgstr "No puede colocarlo aquí"
 #. module: shopfloor
 #: code:addons/shopfloor/actions/message.py:0
 #, python-format
+msgid "You cannot return more quantity than what was initially sent."
+msgstr ""
+
+#. module: shopfloor
+#: code:addons/shopfloor/actions/message.py:0
+#, python-format
 msgid "You cannot work on a package (%s) outside of locations: %s"
 msgstr "No puede trabajar en el paquete (%s) fuera de la ubicación: %s"
 
@@ -1868,6 +1898,18 @@ msgstr "{} no encontrado en la transferencia actual o ya está en un paquete."
 #, python-format
 msgid "{} {} put in {}"
 msgstr "{} {} poner en {}"
+
+#, python-format
+#~ msgid "No line to pack found"
+#~ msgstr "No se encontró ninguna línea para empaquetar"
+
+#, python-format
+#~ msgid ""
+#~ "'Multiple moves same destination package' is mandatory when 'Pick and "
+#~ "pack at the same time' is set."
+#~ msgstr ""
+#~ "'Múltiples movimientos en el mismo paquete de destino' es obligatorio "
+#~ "cuando 'Recoger y empaquetar al mismo tiempo' está configurado."
 
 #, python-format
 #~ msgid ""

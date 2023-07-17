@@ -17,7 +17,14 @@ const template_mobile = `
             v-on:found="on_scan"
             :input_placeholder="search_input_placeholder"
             />
-
+        <qrcode-scanner
+            v-if="state.on_scan"
+            v-on:found="on_scan"
+            :qrbox="250" 
+            :fps="10" 
+            style="width: 100%;"
+            @result="state.onScan"
+          />
         <div v-if="state_is('scan_location')">
             <manual-select
                 v-on:select="state.on_select"
@@ -567,6 +574,11 @@ const ZonePicking = {
                             this.odoo.call("scan_location", {barcode: scanned.text})
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_location", {barcode: decodedText})
+                        );
+                      },
                     on_unload_at_destination: () => {
                         const loaded_data = this.state.data.buffer;
                         const odoo_params = this._get_odoo_params();
@@ -640,6 +652,9 @@ const ZonePicking = {
                     on_scan: (scanned) => {
                         this.scan_source(scanned.text);
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.scan_source(decodedText);
+                      },
                     on_select: (selected) => {
                         const path = "package_src.name";
                         let barcode = _.result(selected, path);
@@ -686,6 +701,17 @@ const ZonePicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const data = this.state.data;
+                        this.wait_call(
+                            this.odoo.call("set_destination", {
+                                move_line_id: data.move_line.id,
+                                barcode: decodedText,
+                                quantity: this.scan_destination_qty,
+                                confirmation: data.confirmation_required,
+                            })
+                        );
+                      },
                     on_action: (action) => {
                         this.state["on_" + action.event_name].call(this);
                     },
@@ -714,6 +740,15 @@ const ZonePicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.state_set_data({location_barcode: scanned.text});
+                        this.wait_call(
+                            this.odoo.call("set_destination_all", {
+                                barcode: decodedText,
+                                confirmation: this.state.data.confirmation_required,
+                            })
+                        );
+                      },
                     on_action_split: () => {
                         this.wait_call(this.odoo.call("unload_split", {}));
                     },
@@ -731,6 +766,14 @@ const ZonePicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("unload_scan_pack", {
+                                package_id: this.state.data.move_line.package_dest.id,
+                                barcode: decodedText,
+                            })
+                        );
+                      },
                 },
                 unload_set_destination: {
                     display_info: {
@@ -746,6 +789,15 @@ const ZonePicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("unload_set_destination", {
+                                package_id: this.state.data.move_line.package_dest.id,
+                                barcode: decodedText,
+                                confirmation: this.state.data.confirmation_required,
+                            })
+                        );
+                      },
                 },
                 change_pack_lot: {
                     display_info: {
@@ -760,6 +812,14 @@ const ZonePicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("change_pack_lot", {
+                                move_line_id: this.state.data.move_line.id,
+                                barcode: decodedText,
+                            })
+                        );
+                      },
                 },
                 stock_issue: {
                     enter: () => {

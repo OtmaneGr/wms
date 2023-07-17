@@ -18,6 +18,14 @@ const SingleProductTransfer = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
             />
+            <qrcode-scanner
+                v-if="state_in(['select_location_or_package', 'select_product', 'set_quantity', 'set_location'])"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <template v-if="state_is('select_product')">
                 <item-detail-card
                     v-if="state.data.location"
@@ -184,6 +192,13 @@ const SingleProductTransfer = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_location_or_package", {
+                                barcode: decodedText,
+                            })
+                        );
+                    },
                 },
                 select_product: {
                     display_info: {
@@ -192,6 +207,10 @@ const SingleProductTransfer = {
                     },
                     on_scan: (scanned) => {
                         const params = this.get_select_product_scan_params(scanned);
+                        this.wait_call(this.odoo.call("scan_product", params));
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        const params = this.get_select_product_scan_params(decodedText);
                         this.wait_call(this.odoo.call("scan_product", params));
                     },
                     on_cancel: () => {
@@ -223,6 +242,19 @@ const SingleProductTransfer = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const confirmation = this.state.data.asking_confirmation
+                            ? true
+                            : false;
+                        this.wait_call(
+                            this.odoo.call("set_quantity", {
+                                selected_line_id: this.state.data.move_line.id,
+                                barcode: decodedText,
+                                quantity: this.state.data.quantity,
+                                confirmation,
+                            })
+                        );
+                    },
                     on_cancel: () => {
                         this.wait_call(
                             this.odoo.call("set_quantity__action_cancel", {
@@ -242,6 +274,15 @@ const SingleProductTransfer = {
                                 selected_line_id: this.state.data.move_line.id,
                                 package_id: this.state.data.package.id,
                                 barcode: scanned.text,
+                            })
+                        );
+                    },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("set_location", {
+                                selected_line_id: this.state.data.move_line.id,
+                                package_id: this.state.data.package.id,
+                                barcode: decodedText,
                             })
                         );
                     },

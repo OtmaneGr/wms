@@ -28,6 +28,15 @@ export var SinglePackStatesMixin = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const data = this.state.data;
+                        this.wait_call(
+                            this.odoo.call("start", {
+                                barcode: decodedText,
+                                confirmation: data.confirmation_required,
+                            })
+                        );
+                      },
                 },
                 scan_location: {
                     display_info: {
@@ -47,6 +56,18 @@ export var SinglePackStatesMixin = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const data = this.state.data;
+                        this.state_set_data({location_barcode: decodedText});
+                        this.wait_call(
+                            this.odoo.call("validate", {
+                                package_level_id: data.id,
+                                location_barcode: decodedText,
+                                confirmation:
+                                    confirmation || data.confirmation_required,
+                            })
+                        );
+                      },
                     on_cancel: () => {
                         this.wait_call(
                             this.odoo.call("cancel", {
@@ -68,7 +89,23 @@ const SinglePackTransfer = {
                 <state-display-info :info="state.display_info" v-if="state.display_info"/>
             </template>
             <searchbar v-if="state_is(initial_state_key)" v-on:found="on_scan" :input_placeholder="search_input_placeholder"></searchbar>
+            <qrcode-scanner
+            v-if="state_is(initial_state_key)"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <searchbar v-if="state_is('scan_location')" v-on:found="on_scan" :input_placeholder="search_input_placeholder" :input_data_type="'location'"></searchbar>
+            <qrcode-scanner
+            v-if="state_is('scan_location')"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <div v-if="state.key != 'show_completion_info' && _.result(state, 'data.picking')">
                 <item-detail-card
                     :key="make_state_component_key(['package', state.data.id])"

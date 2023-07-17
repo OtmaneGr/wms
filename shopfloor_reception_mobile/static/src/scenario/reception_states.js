@@ -37,6 +37,13 @@ export const reception_states = function () {
                     })
                 );
             },
+            onScan: (decodedText, decodedResult ) => {
+                this.wait_call(
+                    this.odoo.call("scan_document", {
+                        barcode: decodedText,
+                    })
+                );
+              },
             on_manual_selection: () => {
                 this.wait_call(this.odoo.call("list_stock_pickings"));
             },
@@ -73,6 +80,14 @@ export const reception_states = function () {
                     this.odoo.call("scan_line", {
                         picking_id: this.state.data.picking.id,
                         barcode: barcode.text,
+                    })
+                );
+            },
+            onScan: (decodedText, decodedResult ) => {
+                this.wait_call(
+                    this.odoo.call("scan_line", {
+                        picking_id: this.state.data.picking.id,
+                        barcode: decodedText,
                     })
                 );
             },
@@ -136,6 +151,21 @@ export const reception_states = function () {
                     event_hub.$emit("datepicker:newdate", this.line_being_handled.lot);
                 });
             },
+            onScan: (decodedText, decodedResult ) => {
+                // Scan a lot
+                this.wait_call(
+                    this.odoo.call("set_lot", {
+                        picking_id: this.state.data.picking.id,
+                        selected_line_id: this.line_being_handled.id,
+                        lot_name: decodedText,
+                    })
+                ).then(() => {
+                    // We need to wait for the call to the backend to be over
+                    // to update the date-picker-input component
+                    // with the expiration_date of the selected lot.
+                    event_hub.$emit("datepicker:newdate", this.line_being_handled.lot);
+                });
+            },
             on_date_picker_selected: (expiration_date) => {
                 // Select expiration_date
                 this.wait_call(
@@ -175,6 +205,18 @@ export const reception_states = function () {
                         selected_line_id: this.line_being_handled.id,
                         quantity: this.scan_destination_qty,
                         barcode: barcode.text,
+                        confirmation: this.state.data.confirmation_required,
+                    })
+                );
+            },
+            onScan: (decodedText, decodedResult ) => {
+                this.wait_call(
+                    this.odoo.call("set_quantity", {
+                        // TODO: add quantity from qty-picker
+                        picking_id: this.state.data.picking.id,
+                        selected_line_id: this.line_being_handled.id,
+                        quantity: this.scan_destination_qty,
+                        barcode: decodedText,
                         confirmation: this.state.data.confirmation_required,
                     })
                 );
@@ -236,6 +278,16 @@ export const reception_states = function () {
                     })
                 );
             },
+            onScan: (decodedText, decodedResult ) => {
+                this.wait_call(
+                    this.odoo.call("set_destination", {
+                        picking_id: this.state.data.picking.id,
+                        selected_line_id: this.line_being_handled.id,
+                        location_name: decodedText,
+                        confirmation: true,
+                    })
+                );
+            },
         },
         select_dest_package: {
             display_info: {
@@ -251,6 +303,15 @@ export const reception_states = function () {
                         picking_id: this.state.data.picking.id,
                         selected_line_id: this.line_being_handled.id,
                         barcode: barcode.text,
+                    })
+                );
+            },
+            onScan: (decodedText, decodedResult ) => {
+                this.wait_call(
+                    this.odoo.call("select_dest_package", {
+                        picking_id: this.state.data.picking.id,
+                        selected_line_id: this.line_being_handled.id,
+                        barcode: decodedText,
                     })
                 );
             },

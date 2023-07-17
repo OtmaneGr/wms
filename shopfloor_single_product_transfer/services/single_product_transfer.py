@@ -217,18 +217,7 @@ class ShopfloorSingleProductTransfer(Component):
     def _scan_product__select_move_line(
         self, product, location=None, package=None, lot=None, packaging=None
     ):
-        domain = self._scan_product__select_move_line_domain(
-            product, location=location, package=package, lot=lot
-        )
-        query = self.env["stock.move.line"]._search(domain, limit=1)
-        order_elems = [
-            "stock_move_line__picking_id.user_id",
-            "stock_move_line__picking_id.priority DESC",
-            "stock_move_line__picking_id.scheduled_date ASC",
-            "id DESC",
-        ]
-        query.order = ",".join(order_elems)
-        move_line = self.env["stock.move.line"].browse(query)
+        move_line = self._select_move_line_from_product(product, location, package, lot)
         if move_line:
             stock = self._actions_for("stock")
             if self.work.menu.no_prefill_qty:
@@ -243,6 +232,28 @@ class ShopfloorSingleProductTransfer(Component):
             else:
                 stock.mark_move_line_as_picked(move_line)
             return self._response_for_set_quantity(move_line)
+
+    def _select_move_line_from_product(self, product, location, package, lot):
+        domain = self._scan_product__select_move_line_domain(
+            product, location=location, package=package, lot=lot
+        )
+        # We add a default order by "id" to avoid the _search method
+        # setting up its own order, which will result in an error.
+        query = self.env["stock.move.line"]._search(domain, order="id", limit=1)
+        # After we retrieve the query, we update the order ourselves.
+        order_elems = [
+            "stock_move_line__picking_id.user_id",
+            "stock_move_line__picking_id.priority DESC",
+            "stock_move_line__picking_id.scheduled_date ASC",
+            "id DESC",
+        ]
+        query.order = ",".join(order_elems)
+        query_str, query_params = query.select()
+        query_str += " FOR UPDATE"
+        self.env.cr.execute(query_str, query_params)
+        ml_ids = [row[0] for row in self.env.cr.fetchall()]
+        move_line = self.env["stock.move.line"].browse(ml_ids)
+        return move_line
 
     def _scan_product__check_create_move_line(
         self, product, location=None, package=None, lot=None, packaging=None
@@ -599,7 +610,12 @@ class ShopfloorSingleProductTransfer(Component):
         # TODO qty_done = 0: transfer_no_qty_done
         # TODO qty done < product_qty: transfer_confirm_done
         self._write_destination_on_lines(move_line, location)
-        self._post_move(move_line)
+        if self.is_allow_move_create():
+            self._post_move(move_line)
+        else:
+            # If allow_move_create is not enabled,
+            # we create a backorder.
+            self._split_move(move_line)
         message = self.msg_store.transfer_done_success(move_line.picking_id)
         completion_info = self._actions_for("completion.info")
         completion_info_popup = completion_info.popup(move_line)
@@ -611,6 +627,9 @@ class ShopfloorSingleProductTransfer(Component):
         )
 
     def _post_move(self, move_line):
+        move_line.picking_id.with_context({"cancel_backorder": True})._action_done()
+
+    def _split_move(self, move_line):
         # TODO: when we split the move, we still get a
         # backorder, which should not be the case.
         # See if there's a way to identify the moves
@@ -788,6 +807,11 @@ class ShopfloorSingleProductTransfer(Component):
         if not move_line.exists():
             # TODO Should probably return to scan_product or scan_location?
             return self._response_for_set_quantity(move_line)
+
+        self._lock_lines(move_line)
+        if move_line.state == "done":
+            message = self.msg_store.move_already_done()
+            return self._response_for_set_quantity(move_line, message=message)
         self._set_quantity__set_picker_qty(move_line, quantity)
         handlers_by_type = {
             # Increment qty done if a product / lot / packaging is scanned
@@ -808,9 +832,13 @@ class ShopfloorSingleProductTransfer(Component):
         return self._response_for_set_quantity(move_line, message=message)
 
     def set_quantity__action_cancel(self, selected_line_id):
-        stock = self._actions_for("stock")
         move_line = self.env["stock.move.line"].browse(selected_line_id).exists()
-        stock.unmark_move_line_as_picked(move_line)
+        picking = move_line.picking_id
+        if self.is_allow_move_create() and self.env.user == picking.create_uid:
+            picking.action_cancel()
+        else:
+            stock = self._actions_for("stock")
+            stock.unmark_move_line_as_picked(move_line)
         return self._response_for_select_location_or_package()
 
     def set_location(self, selected_line_id, package_id, barcode):

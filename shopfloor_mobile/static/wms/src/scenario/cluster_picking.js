@@ -19,6 +19,14 @@ const ClusterPicking = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
+            <qrcode-scanner
+                v-show="state.on_scan"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="state.onScan"
+              />
             <get-work
                 v-if="state_is('start')"
                 v-on:get_work="state.on_get_work"
@@ -262,6 +270,20 @@ const ClusterPicking = {
                         }
                         this.wait_call(this.odoo.call("scan_line", data));
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const data = {
+                            picking_batch_id: this.current_batch().id,
+                            move_line_id: this.state.data.id,
+                            barcode: decodedText,
+                        };
+                        if (
+                            this.state_is("start_line") &&
+                            this.state.data.sublocation
+                        ) {
+                            data.sublocation_id = this.state.data.sublocation.id;
+                        }
+                        this.wait_call(this.odoo.call("scan_line", data));
+                      },
                     // Additional actions
                     on_action: (action) => {
                         this.state["on_" + action].call(this);
@@ -315,6 +337,16 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("scan_destination_pack", {
+                                picking_batch_id: this.current_batch().id,
+                                move_line_id: this.state.data.id,
+                                barcode: decodedText,
+                                quantity: this.scan_destination_qty,
+                            })
+                        );
+                      },
                     on_action_full_bin: () => {
                         this.action_full_bin();
                     },
@@ -357,6 +389,17 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        confirmation = false;
+                        this.state_set_data({location_barcode: decodedText});
+                        this.wait_call(
+                            this.odoo.call("set_destination_all", {
+                                picking_batch_id: this.current_batch().id,
+                                barcode: decodedText,
+                                confirmation: confirmation,
+                            })
+                        );
+                    },
                 },
                 confirm_unload_all: {
                     display_info: {
@@ -382,7 +425,16 @@ const ClusterPicking = {
                         // this.state.on_scan(scanned, confirmation);
                         this.states.unload_all.on_scan(scanned, confirmation);
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.on_state_exit();
+                        // FIXME: use state_load or traverse the state
+                        // this.current_state_key = "unload_all";
+                        // this.state.on_scan(scanned, confirmation);
+                        confirmation = true;
+                        scanned = decodedText;
+                        this.states.unload_all.on_scan(scanned, confirmation);
                 },
+            },
                 unload_single: {
                     display_info: {
                         title: this.$t("cluster_picking.unload_single.title"),
@@ -397,6 +449,15 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("unload_scan_pack", {
+                                picking_batch_id: this.current_batch().id,
+                                package_id: null, // FIXME: where does it come from? backend data?
+                                barcode: decodedText,
+                            })
+                        );
+                },
                 },
                 unload_set_destination: {
                     display_info: {
@@ -412,6 +473,15 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("unload_scan_destination", {
+                                picking_batch_id: this.current_batch().id,
+                                package_id: null, // FIXME: where does it come from? backend data?
+                                barcode: decodedText,
+                            })
+                        );
+                },
                 },
                 confirm_unload_set_destination: {
                     display_info: {
@@ -430,6 +500,16 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        this.wait_call(
+                            this.odoo.call("unload_scan_destination", {
+                                picking_batch_id: this.current_batch().id,
+                                package_id: null, // FIXME: where does it come from? backend data?
+                                barcode: decodedText,
+                                confirmation: true,
+                            })
+                        );
+                },
                 },
                 change_pack_lot: {
                     display_info: {
@@ -451,6 +531,19 @@ const ClusterPicking = {
                             })
                         );
                     },
+                    onScan: (decodedText, decodedResult ) => {
+                        const quantity =
+                            this.scan_destination ||
+                            this.state_get_data("start_line").quantity;
+                        this.wait_call(
+                            this.odoo.call("change_pack_lot", {
+                                picking_batch_id: this.current_batch().id,
+                                move_line_id: this.state.data.id,
+                                barcode: decodedText,
+                                quantity: quantity,
+                            })
+                        );
+                },
                 },
                 stock_issue: {
                     enter: () => {

@@ -15,6 +15,14 @@ const ScanAnything = {
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
+            <qrcode-scanner
+                v-if="!displayOnly"
+                v-on:found="on_scan"
+                :qrbox="250" 
+                :fps="10" 
+                style="width: 100%;"
+                @result="onScan"
+              />
             <component
                 :is="detail_component_name()"
                 :record="scan_data.record"
@@ -83,6 +91,17 @@ const ScanAnything = {
                 });
             }
         },
+        onScan: function (decodedText, decodedResult ) {
+            if (this.$route.params.identifier == decodedText) {
+                // Scanned same resource, just reload
+                this.getData(decodedText);
+            } else {
+                this.$router.push({
+                    name: "scan_anything",
+                    params: {identifier: decodedText},
+                });
+            }
+          },
         detail_component_name() {
             if (_.isEmpty(this.scan_data)) {
                 return null;

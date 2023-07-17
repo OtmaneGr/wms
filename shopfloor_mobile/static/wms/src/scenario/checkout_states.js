@@ -19,6 +19,12 @@ export const checkout_states = function ($instance) {
                     $instance.odoo.call("scan_document", {barcode: scanned.text})
                 );
             },
+            onScan: (decodedText, decodedResult ) => {
+                console.log(decodedText);
+                $instance.wait_call(
+                    $instance.odoo.call("scan_document", {barcode: decodedText})
+                );
+              },
             on_manual_selection: (evt) => {
                 $instance.wait_call($instance.odoo.call("list_stock_picking"));
             },
@@ -62,6 +68,17 @@ export const checkout_states = function ($instance) {
                     })
                 );
             },
+            onScan: (decodedText, decodedResult ) => {
+                $instance.wait_call(
+                    $instance.odoo.call("scan_line", {
+                        picking_id: $instance.state.data.picking.id,
+                        barcode: decodedText,
+                        confirm_pack_all: $instance.state.data.need_confirm_pack_all,
+                    })
+                );
+    
+                // handle the message here :)
+              },
             on_select: (selected) => {
                 if (!selected) {
                     return;
@@ -116,6 +133,20 @@ export const checkout_states = function ($instance) {
                             picking_id: $instance.state.data.picking.id,
                             selected_line_ids: $instance.selectable_line_ids(),
                             barcode: scanned.text,
+                        })
+                        .then((res) => {
+                            $instance.handle_manual_select_highlight_on_scan(res);
+                            return res;
+                        })
+                );
+            },
+            onScan: (decodedText, decodedResult ) => {
+                $instance.wait_call(
+                    $instance.odoo
+                        .call("scan_package_action", {
+                            picking_id: $instance.state.data.picking.id,
+                            selected_line_ids: $instance.selectable_line_ids(),
+                            barcode: decodedText,
                         })
                         .then((res) => {
                             $instance.handle_manual_select_highlight_on_scan(res);
@@ -221,6 +252,17 @@ export const checkout_states = function ($instance) {
                     })
                 );
             },
+            onScan: (decodedText, decodedResult ) => {
+                const picking = $instance.current_doc().record;
+                $instance.wait_call(
+                    $instance.odoo.call("scan_package_action", {
+                        picking_id: picking.id,
+                        selected_line_ids: $instance.selected_line_ids(),
+                        barcode: decodedText,
+                    })
+                );
+            },
+            
         },
         change_quantity: {
             display_info: {
@@ -262,6 +304,15 @@ export const checkout_states = function ($instance) {
                         picking_id: $instance.state.data.picking.id,
                         selected_line_ids: $instance.selected_line_ids(),
                         barcode: scanned.text,
+                    })
+                );
+            },
+            onScan: (decodedText, decodedResult ) => {
+                $instance.wait_call(
+                    $instance.odoo.call("scan_dest_package", {
+                        picking_id: $instance.state.data.picking.id,
+                        selected_line_ids: $instance.selected_line_ids(),
+                        barcode: decodedText,
                     })
                 );
             },

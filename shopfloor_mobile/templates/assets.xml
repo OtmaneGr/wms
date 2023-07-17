@@ -32,6 +32,10 @@
                 type="module"
             />
             <script
+            id="script_barcode"
+            t-attf-src="/shopfloor_mobile/static/wms/src/lib/html5-qrcode.min.js"
+        />
+            <script
                 id="script_misc"
                 t-attf-src="/shopfloor_mobile/static/wms/src/components/misc.js?v=#{mod_version}"
                 type="module"
@@ -39,6 +43,11 @@
             <script
                 id="script_add_translations_registry"
                 t-attf-src="/shopfloor_mobile/static/wms/src/i18n/add_translations_to_registry.js?v=#{app_version}"
+                type="module"
+            />
+            <script
+                id="script_component_barcode_decoder"
+                t-attf-src="/shopfloor_mobile/static/wms/src/components/barcode_decoder.js"
                 type="module"
             />
             <script
