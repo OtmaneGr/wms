@@ -107,6 +107,32 @@ const messages_fr = {
             title: "Recharger la configuration et le menu",
         },
     },
+    misc: {
+        // TODO: split out WMS messages
+        btn_get_work: "Obtenir du travail",
+        btn_manual_selection: "Sélection manuelle",
+        stock_zero_check: {
+            confirm_stock_zero: "Confirmer le stock = 0",
+            confirm_stock_not_zero: "Déclarer stock non vide",
+        },
+        actions_popup: {
+            btn_action: "Action",
+        },
+        lines_count: "{priority_lines_count}/{lines_count}",
+        lines_count_extended: "{priority_lines_count}/{lines_count} position(s)",
+        picking_count: "{priority_picking_count}/{picking_count}",
+        picking_count_extended: "{priority_picking_count}/{picking_count} picking(s)",
+    },
+    list: {
+        no_items: "Aucun élément dans la liste.",
+    },
+    select: {
+        no_items: "Aucun élément à sélectionner.",
+    },
+    order_lines_by: {
+        priority: "Ordre par priorité",
+        location: "Ordre par emplacement",
+    },
 };
 
 translation_registry.add("fr-FR", messages_fr);

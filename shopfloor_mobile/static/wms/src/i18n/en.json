@@ -27,5 +27,7 @@
   "misc.lines_count": "Number of lines",
   "misc.stock_zero_check.confirm_stock_not_zero": "Confirm stock",
   "misc.stock_zero_check.confirm_stock_zero": "Confirm out of stock",
-  "scan_placeholder_translation": "Scan location"
+  "scan_placeholder_translation": "Scan location",
+  "checkout_states.select_document.display_info.title":"Choose an order to pack",
+  "checkout_states.select_document.display_scan_placeholder":"Scan pack / product / picking / location"
 }
